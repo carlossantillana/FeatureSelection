@@ -2,3 +2,7 @@ https://www.mathsisfun.com/data/standard-deviation-formulas.html
 	(To learn how to find standard deviation)
 https://stackoverflow.com/questions/16500831/c-how-do-i-read-a-floating-point-from-the-file-and-store-into-another-file
 	(Took and adapted code to parse input file)
+https://www.quora.com/What-is-the-difference-between-Manhattan-and-Euclidean-distance-measures
+	(To decide what works better in n dimensional space to find distance manhattan or euclidean)
+https://stackoverflow.com/questions/2684603/how-do-i-initialize-a-float-to-its-max-min-value
+	(how to initialize dist to max in c++)

@@ -5,17 +5,27 @@
 #include <sstream>
 #include <cmath>
 #include <iomanip>
+#include <limits>
 using namespace std;
 
 struct feature{
     int type =0;
     vector<float> feature = vector<float> (64);
 };
+struct node{
+    *node = parent, child;
+    vector<int> features;
+}
 
 //Function Prototypes
 void getInput(vector<feature> &features);
 void printFeatures(const vector<feature> &features);
 void normalize(vector<feature> &features);
+feature nearestNeighbor(const vector<feature> &features, feature start);
+float distance(vector<float> lhs, vector<float> rhs);
+void makeTree(const vector<feature> &features);
+float forwardSelection(const vector<feature> &features);
+
 int main(){
     int menuInput;
     vector<feature> features (2048);
@@ -45,9 +55,9 @@ int main(){
     else if (menuInput == 3){
 
     }
-    cout << "Please wait while I normalize the data... Done!\n";
-//Ask professor if we have to normalize each dimension seperate of eachother or not
+
     normalize(features);
+    cout << "Please wait while I normalize the data... Done!\n";
     return 0;
 }
 
@@ -109,6 +119,8 @@ void normalize(vector<feature> &features){
         }
     }
     mean = mean/count;
+    cout << "This data set has " << features.at(1).feature.size() << " features";
+    cout << "(not including the class attribute), with " << features.size() << " instances.\n";
     cout << "mean: " << mean << endl;
     cout << "size: " << count << endl;
     for(int i=0; i < features.size(); i++){// finds std
@@ -124,4 +136,30 @@ void normalize(vector<feature> &features){
                 features.at(i).feature.at(j)= (features.at(i).feature.at(j) - mean)/stdev;
         }
     }
+}
+feature nearestNeighbor(const vector<feature> &features, feature start){
+    feature nearest;
+    float dist = numeric_limits<float>::max(), currentDist =0;
+    for(int i =0; i < features.size(); i++){
+        currentDist = distance(features.at(i).feature, start.feature);
+        if ( currentDist < dist){
+            dist = currentDist;
+            nearest = features.at(i);
+        }
+    }
+    return nearest;
+}
+float distance(vector<float> lhs, vector<float> rhs){
+    float dist =0;
+    for(int i=0; i < lhs.size(); i++){
+        dist+= abs(lhs.at(i) - rhs.at(i));
+    }
+    return dist;
+}
+//Makes feature tree for forward selection
+void makeTree(const vector<feature> &features){
+
+}
+float forwardSelection(const vector<feature> &features){
+
 }
