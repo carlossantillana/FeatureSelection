@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <cmath>
+#include <iomanip>
 using namespace std;
 
 struct feature{
@@ -12,7 +14,8 @@ struct feature{
 
 //Function Prototypes
 void getInput(vector<feature> &features);
-
+void printFeatures(const vector<feature> &features);
+void normalize(vector<feature> &features);
 int main(){
     int menuInput;
     vector<feature> features (2048);
@@ -43,7 +46,8 @@ int main(){
 
     }
     cout << "Please wait while I normalize the data... Done!\n";
-
+//Ask professor if we have to normalize each dimension seperate of eachother or not
+    normalize(features);
     return 0;
 }
 
@@ -58,7 +62,8 @@ void getInput(vector<feature> &features){
 
     cout << "Type the name of file to test: ";
     cin >> fname;
-    inFile.open(fname.c_str());
+    //inFile.open(fname.c_str()); unblock later
+    inFile.open("CS170Smalltestdata__83.txt");
     if(!inFile){
         cout << "Error opening file\n";
         exit(1);
@@ -78,11 +83,45 @@ void getInput(vector<feature> &features){
             features.at(count).feature.at(count2) = val;
             count2++;
         }
-        features.at(count).feature.resize(count2);
+        features.at(count).feature.resize(count2-1);
         count++;
         count2=0;
         rows++;
     }
     features.resize(rows);
     //End
+}
+void printFeatures(const vector<feature> &features){
+    for(int i=0; i < features.size(); i++){
+        cout << features.at(i).type << ": ";
+        for(int j=0; j < features.at(i).feature.size(); j++){
+                cout << setprecision(8) << features.at(i).feature.at(j) << ", ";
+        }
+        cout << endl;
+    }
+}
+void normalize(vector<feature> &features){
+    float mean= 0, stdev=0, count=0, middle =0;
+    for(int i=0; i < features.size(); i++){// finds mean
+        for(int j=0; j < features.at(i).feature.size(); j++){
+                mean+= features.at(i).feature.at(j);
+                count++;
+        }
+    }
+    mean = mean/count;
+    cout << "mean: " << mean << endl;
+    cout << "size: " << count << endl;
+    for(int i=0; i < features.size(); i++){// finds std
+        for(int j=0; j < features.at(i).feature.size(); j++){
+                middle+= pow((features.at(i).feature.at(j)- mean),2);
+        }
+    }
+    stdev = middle/count;
+    stdev = sqrt(stdev);
+    cout << "standard deviation:" << stdev << endl;
+    for(int i=0; i < features.size(); i++){// normalizes
+        for(int j=0; j < features.at(i).feature.size(); j++){
+                features.at(i).feature.at(j)= (features.at(i).feature.at(j) - mean)/stdev;
+        }
+    }
 }
