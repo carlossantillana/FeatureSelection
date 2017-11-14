@@ -23,9 +23,11 @@ void getInput(vector<feature> &features);
 void printFeatures(const vector<feature> &features);
 void normalize(vector<feature> &features);
 feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types);
+feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types, int miss);
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
 vector< vector<int> > makeTree(const vector<feature> &features);
 feature forwardSelection(const vector<feature> &features);
+double leaveOneOut(const vector<feature> &features, vector<int> types);
 
 int main(){
     int menuInput = 2;
@@ -51,6 +53,14 @@ int main(){
     normalize(features);
 
     cout << "Please wait while I normalize the data... Done!\n";
+    vector<int> all (features.at(0).feature.size());
+    double correct =0;
+    for(int i=0; i < features.at(0).feature.size(); i++){
+        all.push_back(i);
+    }
+    correct = leaveOneOut(features, all);
+    cout << "Running nearest neighbor with all 4 features, using “leaving-one-out” evaluation, I get an accuracy of ";
+    cout << setprecision(2) << fixed << correct* 100 << "% \n";
     if (menuInput == 1){
         forwardSelection(features);
     }
@@ -112,6 +122,7 @@ void printFeatures(const vector<feature> &features){
         cout << endl;
     }
 }
+//Normalizes input
 void normalize(vector<feature> &features){
     float mean= 0, stdev=0, count=0, middle =0;
     for(int i=0; i < features.size(); i++){// finds mean
@@ -139,13 +150,13 @@ void normalize(vector<feature> &features){
         }
     }
 }
-//
+//General case
 feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types){
     feature nearest;
     float dist = numeric_limits<float>::max(), currentDist =0;
 
     for(int i =0; i < features.size(); i++){
-        currentDist = distance(features.at(i).feature, start.feature, types);
+        currentDist = distance(features.at(i).feature, start.feature,types);
         if ( currentDist < dist){
             dist = currentDist;
             nearest = features.at(i);
@@ -153,16 +164,32 @@ feature nearestNeighbor(const vector<feature> &features, feature start, vector<i
     }
     return nearest;
 }
+//nearest neighbor for leaving one out evalutation
+feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types, int miss){
+    feature nearest;
+    float dist = numeric_limits<float>::max(), currentDist =0;
 
+    for(int i =0; i < features.size(); i++){
+        if (i != miss){//does not compare left out feature with itself
+            currentDist = distance(features.at(i).feature, start.feature,types);
+            if ( currentDist < dist){
+                dist = currentDist;
+                nearest = features.at(i);
+            }
+        }
+    }
+    return nearest;
+}
+//Finds distance between two features.
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types){
     float dist =0;
-    for(int i=0; i < types.size(); i++){
+    for(int i=0; i < types.size(); i++){//finds distance of only features passed in
         dist+= abs(lhs.at(types.at(i)) - rhs.at(types.at(i)));
     }
     return dist;
 }
 
-//adapted from cplusplus.com
+//adapted from cplusplus.com creates a vector of all possible combinations without replacement
 vector<vector<int> > makeTree(const vector<feature> &features){
     int size = features.at(0).feature.size();
     vector<double> nodes(size);
@@ -193,10 +220,28 @@ vector<vector<int> > makeTree(const vector<feature> &features){
 
     return featureComb;
 }
-
+//Runs forward selection
 feature forwardSelection(const vector<feature> &features){
     feature best;
     vector<vector <int> > searchTree = makeTree(features);
-
+    for(int i=0; i < searchTree.size(); i++){
+        //Darn current solution does not work...
+        //need to know parent child dependency.
+    }
     return best;
+}
+//Runs leave one out evalution
+double leaveOneOut(const vector<feature> &features, vector<int> types){
+    double percentCorrect =0;
+    double correct = 0;
+    feature guess;
+    vector<feature> featMinus = features;//copies feature list
+    for(int i=0; i < features.size(); i++){//I represents the value to leave out
+        guess = nearestNeighbor(features, features.at(i), types, i);
+        if (guess.type == features.at(i).type){
+            correct++;
+        }
+    }
+    percentCorrect = correct/features.size();
+    return percentCorrect;
 }
