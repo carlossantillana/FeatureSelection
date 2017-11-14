@@ -9,25 +9,26 @@
 using namespace std;
 
 struct feature{
-    int type =0;
+    int type =0, dist = numeric_limits<int>::max();
     vector<float> feature = vector<float> (64);
 };
 struct node{
-    *node = parent, child;
-    vector<int> features;
-}
-
+    node *parent;
+    vector<node>children;
+    vector<int> feat;
+    int depth = 0;
+};
 //Function Prototypes
 void getInput(vector<feature> &features);
 void printFeatures(const vector<feature> &features);
 void normalize(vector<feature> &features);
-feature nearestNeighbor(const vector<feature> &features, feature start);
-float distance(vector<float> lhs, vector<float> rhs);
-void makeTree(const vector<feature> &features);
-float forwardSelection(const vector<feature> &features);
+feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types);
+float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
+vector< vector<int> > makeTree(const vector<feature> &features);
+feature forwardSelection(const vector<feature> &features);
 
 int main(){
-    int menuInput;
+    int menuInput = 2;
     vector<feature> features (2048);
 
     cout << "Welcome to Carlos Santillana's Feature Selection Algorithm\n";
@@ -36,6 +37,7 @@ int main(){
     cout << "1. Forward Selection\n";
     cout << "2. Backward Elimination\n";
     cout << "3. Carlos's Special Algorithm\n";
+    cin >> menuInput;
     while (menuInput < 1 || menuInput > 3){
         cin >> menuInput;
         if (menuInput <1  || menuInput > 3){
@@ -46,8 +48,11 @@ int main(){
             cout << "3. Carlos's Special Algorithm\n";
         }
     }
-    if (menuInput == 1){
+    normalize(features);
 
+    cout << "Please wait while I normalize the data... Done!\n";
+    if (menuInput == 1){
+        forwardSelection(features);
     }
     else if (menuInput == 2){
 
@@ -55,9 +60,6 @@ int main(){
     else if (menuInput == 3){
 
     }
-
-    normalize(features);
-    cout << "Please wait while I normalize the data... Done!\n";
     return 0;
 }
 
@@ -137,11 +139,13 @@ void normalize(vector<feature> &features){
         }
     }
 }
-feature nearestNeighbor(const vector<feature> &features, feature start){
+//
+feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types){
     feature nearest;
     float dist = numeric_limits<float>::max(), currentDist =0;
+
     for(int i =0; i < features.size(); i++){
-        currentDist = distance(features.at(i).feature, start.feature);
+        currentDist = distance(features.at(i).feature, start.feature, types);
         if ( currentDist < dist){
             dist = currentDist;
             nearest = features.at(i);
@@ -149,17 +153,50 @@ feature nearestNeighbor(const vector<feature> &features, feature start){
     }
     return nearest;
 }
-float distance(vector<float> lhs, vector<float> rhs){
+
+float distance(vector<float> lhs, vector<float> rhs, vector<int> types){
     float dist =0;
-    for(int i=0; i < lhs.size(); i++){
-        dist+= abs(lhs.at(i) - rhs.at(i));
+    for(int i=0; i < types.size(); i++){
+        dist+= abs(lhs.at(types.at(i)) - rhs.at(types.at(i)));
     }
     return dist;
 }
-//Makes feature tree for forward selection
-void makeTree(const vector<feature> &features){
 
+//adapted from cplusplus.com
+vector<vector<int> > makeTree(const vector<feature> &features){
+    int size = features.at(0).feature.size();
+    vector<double> nodes(size);
+    vector<vector<int> > featureComb;
+    for (double i =0; i < size ; i++){
+        nodes.at(i) = i;
+    }
+    for( int length = 1; length <= size; length++ ) {
+        vector<int> i(length);
+        for( int j = 0; j < length; j++ ){
+            i.at(j) = length - 1 - j;
+        }
+        while( i.at(0) < size ) {
+            vector<int> comb;
+            for( int j = 0; j < length; j++ ){
+                comb.push_back( nodes[i[j]] );
+            }
+            featureComb.push_back(comb);
+            for( int j = 0; j< length; j++ ) {
+                i[j]++;
+                if( i[j] < size )
+                    break;
+                if( j < length - 1 )
+                    i[j] = i.at(j + 1) + 2;
+            }
+        }
+    }
+
+    return featureComb;
 }
-float forwardSelection(const vector<feature> &features){
 
+feature forwardSelection(const vector<feature> &features){
+    feature best;
+    vector<vector <int> > searchTree = makeTree(features);
+
+    return best;
 }
