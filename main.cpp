@@ -14,14 +14,14 @@ struct feature{
 };
 struct node{
     node *sibling, *child;
-    vector<int> feature = vector<int> (64);
+    vector<int> feature;
     int height = 0;
     node(node *ch, node *sib, int ht)
         : sibling{ sib }, child{ ch }, height{ ht } {}
     node()
         : sibling{ NULL }, child{ NULL }, height{ 0 } {}
     node(node *ch)
-        : sibling{ NULL }, child{ NULL }, height{ ch->height +1 }, feature{ ch->feature } {}
+        : sibling{ NULL }, child{ NULL }, height{ ch->height +1 }, feature{ } {}
 };
 //Function Prototypes
 void getInput(vector<feature> &features);
@@ -34,7 +34,7 @@ vector< vector<int> > makeTree(const vector<feature> &features);
 node makeTree2(const vector<feature> &features);
 feature forwardSelection(const vector<feature> &features);
 double leaveOneOut(const vector<feature> &features, vector<int> types);
-void treeHelper(const vector<feature> &features, node &parent);
+void treeHelper(const vector<feature> &features, node &parent, int type);
 void printTree(node origin);
 
 int main(){
@@ -78,6 +78,7 @@ int main(){
     else if (menuInput == 3){
 
     }
+    makeTree(features);
     return 0;
 }
 
@@ -225,40 +226,58 @@ vector<vector<int> > makeTree(const vector<feature> &features){
             }
         }
     }
-
     return featureComb;
 }
 
 node makeTree2(const vector<feature> &features){
-    node origin = new node();
-    treeHelper(features, origin);
-    printTree(origin);
+    node *origin = new node();
+    for (int i=0; i < features.at(0).feature.size(); i++)
+        treeHelper(features, *origin, i);
+    printTree(*origin);
     return origin;
 }
-void treeHelper(const vector<feature> &features, node &parent){
+void treeHelper(const vector<feature> &features, node &parent, int type){
     node * child = new node(&parent);
     parent.child = child;
-    cout << "In tree helper\n";
+    bool repeat = false;
+    cout << "In tree helper\n" << flush;
     cout << "Parent height " << parent.height << endl;
     cout << "child height " << child->height << endl;
     cout << "Parent feature size " << parent.feature.size() << endl;
     if (parent.height >= features.at(0).feature.size()){
-        exit(0);
+        return;
     }
-    for(int i=0; i < features.at(0).feature.size() ; i++){
-        child->feature.push_back(i);
+     if (child->feature.size() == 0)
+         child->feature.push_back(type);
+
+    int size = static_cast<int> (log10(type)) ;// double check this
+    //int size = type % 10;//checks number
+    int check = type;
+    for (int j=0; j < features.at(0).feature.size(); j++){// compares from 0 to num features
+        check = type;
+        repeat = false;
+        for (int i=1; i <= size; i++){
+            int temp = check;
+            check = check % 10;
+            if (j == check)//checks if repeated digit
+                repeat = true;
+            check = temp /10;
+        }
+        if (!repeat){
+            cout << "non repeat type: "  << type * 10 << "new value: " << j << endl;
+            treeHelper(features, *child, (type *10) +j);// moves demcimal over by one and adds new value
+        }
     }
-        treeHelper(features, *child);
 }
 void printTree(node origin){
-    cout << "new node at height " << origin.height << endl;
+    cout << "\nnew node at height " << origin.height << endl;
     cout << "new node at child " << origin.child << endl;
     cout << "new node at sibling " << origin.sibling << endl;
     for(int i =0; i < origin.feature.size(); i++){
-        cout << origin.feature.at(i) << " ";
+        cout << origin.feature.at(i) << ", ";
     }
     if (origin.child != NULL){
-        printTree(origin.child);
+        printTree(*origin.child);
     }
 
     cout << "end of node\n";
