@@ -13,10 +13,15 @@ struct feature{
     vector<float> feature = vector<float> (64);
 };
 struct node{
-    node *parent;
-    vector<node>children;
-    vector<int> feat;
-    int depth = 0;
+    node *sibling, *child;
+    vector<int> feature = vector<int> (64);
+    int height = 0;
+    node(node *ch, node *sib, int ht)
+        : sibling{ sib }, child{ ch }, height{ ht } {}
+    node()
+        : sibling{ NULL }, child{ NULL }, height{ 0 } {}
+    node(node *ch)
+        : sibling{ NULL }, child{ NULL }, height{ ch->height +1 }, feature{ ch->feature } {}
 };
 //Function Prototypes
 void getInput(vector<feature> &features);
@@ -26,8 +31,11 @@ feature nearestNeighbor(const vector<feature> &features, feature start, vector<i
 feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types, int miss);
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
 vector< vector<int> > makeTree(const vector<feature> &features);
+node makeTree2(const vector<feature> &features);
 feature forwardSelection(const vector<feature> &features);
 double leaveOneOut(const vector<feature> &features, vector<int> types);
+void treeHelper(const vector<feature> &features, node &parent);
+void printTree(node origin);
 
 int main(){
     int menuInput = 2;
@@ -220,14 +228,50 @@ vector<vector<int> > makeTree(const vector<feature> &features){
 
     return featureComb;
 }
+
+node makeTree2(const vector<feature> &features){
+    node origin = new node();
+    treeHelper(features, origin);
+    printTree(origin);
+    return origin;
+}
+void treeHelper(const vector<feature> &features, node &parent){
+    node * child = new node(&parent);
+    parent.child = child;
+    cout << "In tree helper\n";
+    cout << "Parent height " << parent.height << endl;
+    cout << "child height " << child->height << endl;
+    cout << "Parent feature size " << parent.feature.size() << endl;
+    if (parent.height >= features.at(0).feature.size()){
+        exit(0);
+    }
+    for(int i=0; i < features.at(0).feature.size() ; i++){
+        child->feature.push_back(i);
+    }
+        treeHelper(features, *child);
+}
+void printTree(node origin){
+    cout << "new node at height " << origin.height << endl;
+    cout << "new node at child " << origin.child << endl;
+    cout << "new node at sibling " << origin.sibling << endl;
+    for(int i =0; i < origin.feature.size(); i++){
+        cout << origin.feature.at(i) << " ";
+    }
+    if (origin.child != NULL){
+        printTree(origin.child);
+    }
+
+    cout << "end of node\n";
+}
 //Runs forward selection
 feature forwardSelection(const vector<feature> &features){
     feature best;
-    vector<vector <int> > searchTree = makeTree(features);
-    for(int i=0; i < searchTree.size(); i++){
+    node searchTree = makeTree2(features);
+    cout << "end of make tree\n";
+    //for(int i=0; i < searchTree.; i++){
         //Darn current solution does not work...
         //need to know parent child dependency.
-    }
+    //}
     return best;
 }
 //Runs leave one out evalution
