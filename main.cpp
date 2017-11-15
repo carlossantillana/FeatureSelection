@@ -14,6 +14,7 @@ struct feature{
 };
 struct node{
     node *sibling, *child;
+    vector<node*> children;
     vector<int> feature;
     int height = 0;
     node(node *ch, node *sib, int ht)
@@ -231,66 +232,69 @@ vector<vector<int> > makeTree(const vector<feature> &features){
 
 node makeTree2(const vector<feature> &features){
     node *origin = new node();
-    for (int i=0; i < features.at(0).feature.size(); i++)
+    for (int i=1; i <= features.at(0).feature.size(); i++)
         treeHelper(features, *origin, i);
     printTree(*origin);
     return origin;
 }
 void treeHelper(const vector<feature> &features, node &parent, int type){
+    int size =0;
+    int sizecheck = type;
     node * child = new node(&parent);
-    parent.child = child;
+    parent.children.push_back(child);
     bool repeat = false;
-    cout << "In tree helper\n" << flush;
-    cout << "Parent height " << parent.height << endl;
-    cout << "child height " << child->height << endl;
-    cout << "Parent feature size " << parent.feature.size() << endl;
-    if (parent.height >= features.at(0).feature.size()){
+    if (parent.height >= features.at(0).feature.size()){// quits if at end of tree
         return;
     }
-     if (child->feature.size() == 0)
-         child->feature.push_back(type);
+    //adds input to child
+    child->feature.push_back(type);
 
-    int size = static_cast<int> (log10(type)) ;// double check this
-    //int size = type % 10;//checks number
+    while (sizecheck > 0 ){//checks number of digits of input
+        sizecheck = sizecheck/10;
+        size++;
+    }
     int check = type;
-    for (int j=0; j < features.at(0).feature.size(); j++){// compares from 0 to num features
+    for (int j=1; j <= features.at(0).feature.size(); j++){// compares from 1 to num features to input
         check = type;
         repeat = false;
-        for (int i=1; i <= size; i++){
+        for (int i=0; i <= size; i++){
             int temp = check;
             check = check % 10;
             if (j == check)//checks if repeated digit
                 repeat = true;
             check = temp /10;
         }
-        if (!repeat){
-            cout << "non repeat type: "  << type * 10 << "new value: " << j << endl;
-            treeHelper(features, *child, (type *10) +j);// moves demcimal over by one and adds new value
+        if (!repeat){//recursively calls itself
+            treeHelper(features, *child, (type *10) + j);// moves demcimal over by one and adds new value
         }
     }
 }
+
 void printTree(node origin){
+
     cout << "\nnew node at height " << origin.height << endl;
-    cout << "new node at child " << origin.child << endl;
-    cout << "new node at sibling " << origin.sibling << endl;
-    for(int i =0; i < origin.feature.size(); i++){
+    if (origin.feature.size() > 0)
+        cout << "node value is " << origin.feature.at(0) << endl;
+    // cout << "new node at child " << origin.child << endl;
+    cout << "children are " << endl;
+    for(int i =0; i < origin.children.size(); i++) {
+        cout << "child " << i << " " << origin.children.at(i) << endl;
+    }
+    // cout << "new node at sibling " << origin.sibling << endl;
+    for(int i =0; i < origin.feature.size(); i++){// prints feature
         cout << origin.feature.at(i) << ", ";
     }
-    if (origin.child != NULL){
-        printTree(*origin.child);
+    for(int i =0; i < origin.children.size(); i++){
+        printTree(*origin.children.at(i));
     }
-
-    cout << "end of node\n";
 }
 //Runs forward selection
 feature forwardSelection(const vector<feature> &features){
     feature best;
     node searchTree = makeTree2(features);
-    cout << "end of make tree\n";
-    //for(int i=0; i < searchTree.; i++){
-        //Darn current solution does not work...
-        //need to know parent child dependency.
-    //}
+    // for(int i=0; i < features.at(0).feature.size(); i++){
+    //
+    // }
     return best;
 }
 //Runs leave one out evalution
