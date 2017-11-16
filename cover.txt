@@ -6,7 +6,5 @@ https://www.quora.com/What-is-the-difference-between-Manhattan-and-Euclidean-dis
 	(To decide what works better in n dimensional space to find distance manhattan or euclidean)
 https://stackoverflow.com/questions/2684603/how-do-i-initialize-a-float-to-its-max-min-value
 	(how to initialize dist to max in c++)
-http://www.cplusplus.com/forum/beginner/40711/
-	(adapted to print all combinations without repitition of feature list)
 https://www.cs.cmu.edu/afs/cs/academic/class/15381-s07/www/slides/042607clustering.pdf
 	(Used to learn Leave one out evaluation referenced in instructions)
