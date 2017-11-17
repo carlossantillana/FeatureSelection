@@ -11,19 +11,12 @@ using namespace std;
 struct feature{
     int type =0, dist = numeric_limits<int>::max();
     vector<float> feature = vector<float> (64);
+    double accuracy = 0;
 };
 struct node{
-    node *sibling, *child;
-    vector<node*> children;
     vector<int> feature;
     double correct =0;
-    int height = 0;
-    node(node *ch, node *sib, int ht)
-        : sibling{ sib }, child{ ch }, height{ ht } {}
-    node()
-        : sibling{ NULL }, child{ NULL }, height{ 0 } {}
-    node(node *ch)
-        : sibling{ NULL }, child{ NULL }, height{ ch->height +1 }, feature{ ch->feature} {}
+    double accuracy = 0;
 };
 //Function Prototypes
 void getInput(vector<feature> &features);
@@ -31,17 +24,16 @@ void printFeatures(const vector<feature> &features);
 void normalize(vector<feature> &features);
 feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types, int miss);
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
-node makeTree(const vector<feature> &features);
-node forwardSelection(const vector<feature> &features, node best, node searchTree);
-double leaveOneOut(const vector<feature> &features, vector<int> types);
-void treeHelper(const vector<feature> &features, node &parent, int type);
-void printTree(node origin);
+node forwardSelection(const vector<feature> &features);
+node backwardSelection(const vector<feature> &features);
+double leaveOneOut(const vector<feature> &features, vector<vector <int>>  types, int k);
+bool contains(vector<vector<int>> thisLevel, int feature);
 
 int main(){
     int menuInput = 2;
     vector<feature> features (2048);
     node best;
-    double correct =0;
+        double correct =0;
 
     cout << "Welcome to Carlos Santillana's Feature Selection Algorithm\n";
     getInput(features);
@@ -62,21 +54,20 @@ int main(){
     }
     normalize(features);
     cout << "Please wait while I normalize the data... Done!\n";
-    vector<int> all (features.at(0).feature.size());
-    cout << "starting tree\n";
-    node * searchTree =  new node(makeTree(features));
-    cout << "finished Tree\n";
-    for(int i=1; i <= features.at(0).feature.size(); i++){//fills vector with all features;
-        all.at(i-1) = i;
+    vector<int> all2 (features.at(0).feature.size()-1);
+    for(int i=1; i < features.at(0).feature.size(); i++){//fills vector with all features;
+        all2.at(i-1) = i;
     }
-    correct = leaveOneOut(features, all);
+    vector<vector<int>> all;
+    all.push_back(all2);
+     correct = leaveOneOut(features, all, features.at(0).feature.size() );
     cout << "Running nearest neighbor with all 4 features, using “leaving-one-out” evaluation, I get an accuracy of ";
     cout << setprecision(2) << fixed << correct* 100 << "% \n";
     if (menuInput == 1){
-        best = forwardSelection(features, best, *searchTree);
+        best = forwardSelection(features);
     }
     else if (menuInput == 2){
-
+        best = backwardSelection(features);
     }
     else if (menuInput == 3){
     //Idea!
@@ -84,7 +75,11 @@ int main(){
     //Depth is limited to four (reference graph dicusssed in class, maybe allow     for user input)
     //number of "snakes" is the square root of number of features
     }
-    cout << "The best feature is "  << best.feature.at(0) << " with an accuracy of "<< best.correct << endl;
+    cout << "The best feature is ";
+    for (int i=0; i < best.feature.size(); i++){
+        cout << best.feature.at(i) << " ";
+    }
+    cout << " with an accuracy of "<< setprecision(7) <<best.accuracy << endl;
     return 0;
 }
 
@@ -163,38 +158,98 @@ void normalize(vector<feature> &features){
         }
     }
 }
-//Nearest neighbor
-// feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types){
-//     feature nearest;
-//     float dist = numeric_limits<float>::max(), currentDist =0;
-//     for(int i =0; i < (features.at(0).feature.size()); i++){
-//         currentDist = distance(features.at(i).feature, start.feature,types);
-//         if ( currentDist < dist){
-//             dist = currentDist;
-//             nearest = features.at(i);
-//         }
-//     }
-//     return nearest;
-// }
+
 //Runs forward selection
-node forwardSelection(const vector<feature> &features, node best, node searchTree){
-    node current;// local best node
-    double max = best.correct;
-    if (searchTree.height >= features.at(0).feature.size()){
-        return best;
+node forwardSelection(const vector<feature> &features){
+    vector<vector<int>> setOfFeatures ;
+    vector<int> thisLevel (1);
+    double bestSoFar = 0;
+    double accuracy =0;
+    node bestest;
+    for (int i =1; i <= features.at(0).feature.size(); i++){
+        cout << "On the " << i  << "th level of the search tree\n";
+        bestSoFar = 0;
+        for (int k =1; k <= features.at(0).feature.size(); k++){
+            accuracy =0;
+            if (!contains(setOfFeatures, k)){
+                cout << "Considering adding the " << k  << "th feature";
+                accuracy = leaveOneOut(features, setOfFeatures, k);
+                cout << " with accuracy " << accuracy << endl;
+                if (accuracy > bestSoFar){
+                    bestSoFar = accuracy;
+                    thisLevel.at(thisLevel.size()-1) = k;
+                    if (bestSoFar > bestest.accuracy){
+                        if (i > 1)
+                            bestest.feature = setOfFeatures.at(i);
+                         bestest.feature.push_back(k);
+                         bestest.accuracy = bestSoFar;
+                    }
+                }
+            }
+        }
+
+        setOfFeatures.push_back (thisLevel);
+        cout << "On level, " << i << " I added feature ";
+        for (int m = 0; m < thisLevel.size(); m++ ){
+            cout << thisLevel.at(m) << " ";
+        }
+        cout << "to current set\n";
+        thisLevel.resize(thisLevel.size()+1);
     }
-    for(int i=0; i < searchTree.children.size(); i++){//find the best feature then call function on it
-        searchTree.children.at(i)->correct = leaveOneOut(features, searchTree.children.at(i)->feature);
-        if (searchTree.children.at(i)->correct > current.correct){//Checks for best local solution
-            current = *searchTree.children.at(i);
-            if (current.correct > max){//Checks for best solution since root
-                max = current.correct;
-                best = *searchTree.children.at(i);
+
+    return bestest;
+}
+//Runs backwardSelection
+node backwardSelection(const vector<feature> &features){
+    vector<vector<int>> setOfFeatures ;
+    vector<int> thisLevel (1);
+    double bestSoFar = 0;
+    double accuracy =0;
+    node bestest;
+    for (int i =1; i <= features.at(0).feature.size(); i++){
+        cout << "On the " << i  << "th level of the search tree\n";
+        bestSoFar = 0;
+        for (int k =1; k <= features.at(0).feature.size(); k++){
+            accuracy =0;
+            if (!contains(setOfFeatures, k)){
+                cout << "Considering adding the " << k  << "th feature";
+                accuracy = leaveOneOut(features, setOfFeatures, k);
+                cout << " with accuracy " << accuracy << endl;
+                if (accuracy > bestSoFar){
+                    bestSoFar = accuracy;
+                    thisLevel.at(thisLevel.size()-1) = k;
+                    if (bestSoFar > bestest.accuracy){
+                        if (i > 1)
+                            bestest.feature = setOfFeatures.at(i);
+                         bestest.feature.push_back(k);
+                         bestest.accuracy = bestSoFar;
+                    }
+                }
+            }
+        }
+
+        setOfFeatures.push_back (thisLevel);
+        cout << "On level, " << i << " I added feature ";
+        for (int m = 0; m < thisLevel.size(); m++ ){
+            cout << thisLevel.at(m) << " ";
+        }
+        cout << "to current set\n";
+        thisLevel.resize(thisLevel.size()+1);
+    }
+
+    return bestest;
+}
+bool contains(vector<vector<int>> thisLevel, int feature){
+    bool cont = false;
+    for(int i =0; i < thisLevel.size(); i++){
+        for(int j =0; j < thisLevel.at(i).size(); j++){
+            if (feature == thisLevel.at(i).at(j)){
+                cont = true;
+                return cont;
             }
         }
     }
-    best = forwardSelection(features, best, current);
-    return best;
+    return cont;
 }
 
 feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types, int miss){
@@ -220,67 +275,34 @@ float distance(vector<float> lhs, vector<float> rhs, vector<int> types){
     return dist;
 }
 
-node makeTree(const vector<feature> &features){
-    node *origin = new node();
-    for (int i=1; i <= features.at(0).feature.size(); i++)
-        treeHelper(features, *origin, i);
-    return *origin;
-}
-void treeHelper(const vector<feature> &features, node &parent, int type){
-    int size =0;
-    int sizecheck = type;
-    node * child = new node(&parent);
-    parent.children.push_back(child);
-    bool repeat = false;
-    if (parent.height >= features.at(0).feature.size()){// quits if at end of tree
-        return;
-    }
-    //adds input to child
-    child->feature.push_back(type);
-    for (int j= 1/*child->feature*/; j <= features.at(0).feature.size(); j++){// compares from 1 to num features to input
-        repeat = false;
-        for (int i=0; i < child->height; i++){
-            if (j == child->feature.at(i)){
-                repeat = true;
-            }
-        }
-        if (!repeat){//recursively calls itself
-            treeHelper(features, *child, j);//  adds new value
-        }
-    }
-}
-
-void printTree(node origin){
-
-    cout << "\nnew node at height " << origin.height << endl;
-    if (origin.feature.size() > 0)
-        cout << "node value is " << origin.feature.at(0) << endl;
-    // cout << "new node at child " << origin.child << endl;
-    cout << "children are " << endl;
-    for(int i =0; i < origin.children.size(); i++) {
-        cout << "child " << i << " " << origin.children.at(i) << endl;
-    }
-    // cout << "new node at sibling " << origin.sibling << endl;
-    for(int i =0; i < origin.feature.size(); i++){// prints feature
-        cout << origin.feature.at(i) << ", ";
-    }
-    for(int i =0; i < origin.children.size(); i++){
-        printTree(*origin.children.at(i));
-    }
-}
-
 //Runs leave one out evalution
-double leaveOneOut(const vector<feature> &features, vector<int> types){
+double leaveOneOut(const vector<feature> &features, vector<vector <int>>  types, int j){
     double percentCorrect =0;
     double correct = 0;
+    vector<int> passedIn;
+    passedIn.push_back(j);
     feature guess;
-    vector<feature> featMinus = features;//copies feature list
-    for(int i=0; i < features.size(); i++){//I represents the value to leave out
-        guess = nearestNeighbor(features, features.at(i), types, i);
+    cout << "\n Types size: " << types.size() << endl;
+    if (!types.empty()){
+        for(int c= 0; c < types.at(types.size()-1).size(); c++){
+            cout << "feature set: " << types.at(types.size()-1).at(c) << ", ";
+        }
+    }
+    cout << "considering " << j << endl;
+    for (int k =0; k < types.size(); k++){//checks previous values
+        for(int i=0; i < features.size(); i++){//I represents the value to leave out
+            guess = nearestNeighbor(features, features.at(i), types.at(k), i);
+            if (guess.type == features.at(i).type){
+                correct++;
+            }
+        }
+    }
+    for(int i=0; i < features.size(); i++){//checks new value
+        guess = nearestNeighbor(features, features.at(i), passedIn, i);
         if (guess.type == features.at(i).type){
             correct++;
         }
     }
-    percentCorrect = correct/features.size();
+    percentCorrect = correct/(features.size()*(types.size()+1));
     return percentCorrect;
 }
