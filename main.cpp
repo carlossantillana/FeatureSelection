@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iomanip>
 #include <limits>
+#include <algorithm>//To erase element from vector by value
 using namespace std;
 
 struct feature{
@@ -26,8 +27,9 @@ feature nearestNeighbor(const vector<feature> &features, feature start, vector<i
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
 node forwardSelection(const vector<feature> &features);
 node backwardSelection(const vector<feature> &features);
-double leaveOneOut(const vector<feature> &features, vector<vector <int>>  types, int k);
-bool contains(vector<vector<int>> thisLevel, int feature);
+double leaveOneOut(const vector<feature> &features, vector<int>  types, int k);
+bool contains(vector<int> thisLevel, int feature);
+double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j);
 
 int main(){
     int menuInput = 2;
@@ -58,11 +60,10 @@ int main(){
     for(int i=1; i < features.at(0).feature.size(); i++){//fills vector with all features;
         all2.at(i-1) = i;
     }
-    vector<vector<int>> all;
-    all.push_back(all2);
-     correct = leaveOneOut(features, all, features.at(0).feature.size() );
+     correct = leaveOneOut(features, all2, features.at(0).feature.size() );
     cout << "Running nearest neighbor with all 4 features, using “leaving-one-out” evaluation, I get an accuracy of ";
     cout << setprecision(2) << fixed << correct* 100 << "% \n";
+    cout << "Beginning search\n";
     if (menuInput == 1){
         best = forwardSelection(features);
     }
@@ -79,7 +80,7 @@ int main(){
     for (int i=0; i < best.feature.size(); i++){
         cout << best.feature.at(i) << " ";
     }
-    cout << " with an accuracy of "<< setprecision(7) <<best.accuracy << endl;
+    cout << " with an accuracy of " <<best.accuracy* 100  << "%" << endl;
     return 0;
 }
 
@@ -161,92 +162,100 @@ void normalize(vector<feature> &features){
 
 //Runs forward selection
 node forwardSelection(const vector<feature> &features){
-    vector<vector<int>> setOfFeatures ;
+    vector<int> setOfFeatures;
     vector<int> thisLevel (1);
-    double bestSoFar = 0;
-    double accuracy =0;
+    double bestSoFar = 0, accuracy =0;
     node bestest;
     for (int i =1; i <= features.at(0).feature.size(); i++){
-        cout << "On the " << i  << "th level of the search tree\n";
+
         bestSoFar = 0;
         for (int k =1; k <= features.at(0).feature.size(); k++){
             accuracy =0;
             if (!contains(setOfFeatures, k)){
-                cout << "Considering adding the " << k  << "th feature";
                 accuracy = leaveOneOut(features, setOfFeatures, k);
-                cout << " with accuracy " << accuracy << endl;
+                cout << "   Using feature(s) { ";
+                for (int m =0; m < setOfFeatures.size(); m++){
+                    cout << setOfFeatures.at(m) << ", ";
+                }
+                cout << k << " } accuracy is " << accuracy * 100 << "%" <<endl;
                 if (accuracy > bestSoFar){
                     bestSoFar = accuracy;
                     thisLevel.at(thisLevel.size()-1) = k;
                     if (bestSoFar > bestest.accuracy){
-                        if (i > 1)
-                            bestest.feature = setOfFeatures.at(i);
-                         bestest.feature.push_back(k);
-                         bestest.accuracy = bestSoFar;
+                         if (i > 1)//So it doesn't crash when setOfFeatures is empty
+                            bestest.feature = thisLevel;
+                        else
+                            bestest.feature.push_back(k);
+                        bestest.accuracy = bestSoFar;
                     }
                 }
             }
         }
 
-        setOfFeatures.push_back (thisLevel);
-        cout << "On level, " << i << " I added feature ";
-        for (int m = 0; m < thisLevel.size(); m++ ){
-            cout << thisLevel.at(m) << " ";
+        setOfFeatures =  (thisLevel);
+        cout << "\nFeature set { ";
+        for (int m =0; m < setOfFeatures.size()-1; m++){
+            cout << setOfFeatures.at(m) << ", ";
         }
-        cout << "to current set\n";
+        cout << " " <<  setOfFeatures.at(setOfFeatures.size()-1) << " } was best, accuracy is ";
+        cout  << bestSoFar * 100 << "%" << endl << endl;
         thisLevel.resize(thisLevel.size()+1);
     }
 
     return bestest;
-}
-//Runs backwardSelection
+}//Runs forward selection
 node backwardSelection(const vector<feature> &features){
-    vector<vector<int>> setOfFeatures ;
-    vector<int> thisLevel (1);
+    vector<int> setOfFeatures;
+    vector<int> thisLevel;
     double bestSoFar = 0;
     double accuracy =0;
+    for(int i=1; i <= features.at(0).feature.size(); i++){
+        setOfFeatures.push_back(i);
+    }
     node bestest;
-    for (int i =1; i <= features.at(0).feature.size(); i++){
-        cout << "On the " << i  << "th level of the search tree\n";
+    for (int i =1; i < features.at(0).feature.size(); i++){
         bestSoFar = 0;
         for (int k =1; k <= features.at(0).feature.size(); k++){
             accuracy =0;
-            if (!contains(setOfFeatures, k)){
-                cout << "Considering adding the " << k  << "th feature";
-                accuracy = leaveOneOut(features, setOfFeatures, k);
-                cout << " with accuracy " << accuracy << endl;
-                if (accuracy > bestSoFar){
+            if (contains(setOfFeatures, k)){
+                accuracy = leaveOneOut2(features, setOfFeatures, k);
+
+                cout << "   Using feature(s) { ";
+                for (int m =0; m < setOfFeatures.size(); m++){
+                    if (setOfFeatures.at(m) != k)
+                        cout << setOfFeatures.at(m) << ", ";
+                }
+                cout <<  "} accuracy is " << accuracy * 100 << "%" <<endl;
+                if (accuracy >= bestSoFar){
                     bestSoFar = accuracy;
-                    thisLevel.at(thisLevel.size()-1) = k;
+                    thisLevel = setOfFeatures;
+                    thisLevel.erase(std::remove(thisLevel.begin(), thisLevel.end(), k), thisLevel.end());// erases k from vect
                     if (bestSoFar > bestest.accuracy){
-                        if (i > 1)
-                            bestest.feature = setOfFeatures.at(i);
-                         bestest.feature.push_back(k);
-                         bestest.accuracy = bestSoFar;
+                        bestest.feature = thisLevel;
+                        bestest.accuracy = bestSoFar;
                     }
                 }
             }
         }
 
-        setOfFeatures.push_back (thisLevel);
-        cout << "On level, " << i << " I added feature ";
-        for (int m = 0; m < thisLevel.size(); m++ ){
-            cout << thisLevel.at(m) << " ";
+        setOfFeatures =  (thisLevel);
+        cout << "\nFeature set { ";
+        for (int m =0; m < setOfFeatures.size()-1; m++){
+            cout << setOfFeatures.at(m) << ", ";
         }
-        cout << "to current set\n";
-        thisLevel.resize(thisLevel.size()+1);
+        cout << " " <<  setOfFeatures.at(setOfFeatures.size()-1) << " } was best, accuracy is ";
+        cout  << bestSoFar * 100 << "%" << endl << endl;
+        thisLevel.resize(thisLevel.size()-1);
     }
 
     return bestest;
 }
-bool contains(vector<vector<int>> thisLevel, int feature){
+bool contains(vector<int> thisLevel, int feature){
     bool cont = false;
     for(int i =0; i < thisLevel.size(); i++){
-        for(int j =0; j < thisLevel.at(i).size(); j++){
-            if (feature == thisLevel.at(i).at(j)){
+            if (feature == thisLevel.at(i)){
                 cont = true;
                 return cont;
-            }
         }
     }
     return cont;
@@ -276,33 +285,36 @@ float distance(vector<float> lhs, vector<float> rhs, vector<int> types){
 }
 
 //Runs leave one out evalution
-double leaveOneOut(const vector<feature> &features, vector<vector <int>>  types, int j){
+double leaveOneOut(const vector<feature> &features, vector<int>  types, int j){
     double percentCorrect =0;
     double correct = 0;
-    vector<int> passedIn;
-    passedIn.push_back(j);
+    types.push_back(j);
     feature guess;
-    cout << "\n Types size: " << types.size() << endl;
-    if (!types.empty()){
-        for(int c= 0; c < types.at(types.size()-1).size(); c++){
-            cout << "feature set: " << types.at(types.size()-1).at(c) << ", ";
-        }
-    }
-    cout << "considering " << j << endl;
     for (int k =0; k < types.size(); k++){//checks previous values
         for(int i=0; i < features.size(); i++){//I represents the value to leave out
-            guess = nearestNeighbor(features, features.at(i), types.at(k), i);
+            guess = nearestNeighbor(features, features.at(i), types, i);
             if (guess.type == features.at(i).type){
                 correct++;
             }
         }
     }
-    for(int i=0; i < features.size(); i++){//checks new value
-        guess = nearestNeighbor(features, features.at(i), passedIn, i);
-        if (guess.type == features.at(i).type){
-            correct++;
+    percentCorrect = correct/(features.size()*(types.size()));
+    return percentCorrect;
+}
+//Runs leave one out evalution for backwardSelection
+double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j){
+    double percentCorrect =0;
+    double correct = 0;
+    feature guess;
+    types.erase(std::remove(types.begin(), types.end(), j), types.end());// erases k from vect
+    for (int k =0; k < types.size(); k++){//checks previous values
+        for(int i=0; i < features.size(); i++){//I represents the value to leave out
+            guess = nearestNeighbor(features, features.at(i), types, i);
+            if (guess.type == features.at(i).type){
+                correct++;
+            }
         }
     }
-    percentCorrect = correct/(features.size()*(types.size()+1));
+    percentCorrect = correct/(features.size()*(types.size()));
     return percentCorrect;
 }
