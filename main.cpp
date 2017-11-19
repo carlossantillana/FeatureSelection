@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <limits>
 #include <algorithm>//To erase element from vector by value
+#include <queue>
 using namespace std;
 
 struct feature{
@@ -18,16 +19,25 @@ struct node{
     vector<int> feature;
     double correct =0;
     double accuracy = 0;
+    node()
+        : correct {0}, accuracy {0} {}
+    node(vector<int> feats, double corr, double acc)
+        : feature { feats }, correct { corr }, accuracy { acc } {}
+    bool operator<(const node& rhs) const//Used for priority_queue compares accuracy of nodes
+ {
+     return accuracy < rhs.accuracy;
+ }
 };
+
 //Function Prototypes
 void getInput(vector<feature> &features);
-void printFeatures(const vector<feature> &features);
+void printFeatures(const vector<feature> &features);//delete this later
 void normalize(vector<feature> &features);
 feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types, int miss);
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
 node forwardSelection(const vector<feature> &features);
 node backwardSelection(const vector<feature> &features);
-node carlosSelection(const vector<feature> &features);
+node carlosSelection(const vector<feature> &features,int place);
 double leaveOneOut(const vector<feature> &features, vector<int>  types, int k);
 bool contains(vector<int> thisLevel, int feature);
 double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j);
@@ -35,8 +45,8 @@ double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j);
 int main(){
     int menuInput = 2;
     vector<feature> features (2048);
-    node best;
-        double correct =0;
+    node best, tempBest;
+    double correct =0;
 
     cout << "Welcome to Carlos Santillana's Feature Selection Algorithm\n";
     getInput(features);
@@ -74,9 +84,14 @@ int main(){
     else if (menuInput == 3){
     //Idea!
     //Depth limited monte carlo (fork) search
-    //Depth is limited to four (reference graph dicusssed in class, maybe allow     for user input)
+    //Depth is limited to four (reference graph dicusssed in class, maybe allow    for user input)
     //number of "snakes" is the square root of number of features
-        best = carlosSelection(features);
+        for(int l= 0; l < sqrt(features.at(0).feature.size()); l++){
+            tempBest = carlosSelection(features, l);
+            if ( tempBest.accuracy > best.accuracy ){
+                best = tempBest;
+            }
+        }
     }
     cout << "The best feature is ";
     for (int i=0; i < best.feature.size(); i++){
@@ -323,11 +338,12 @@ double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j){
 }
 //Runs a depth limited search by the sqrt of the number of features but guarantees
 // to run to a depth of at least four if there are four or more features.
-node carlosSelection(const vector<feature> &features){
+node carlosSelection(const vector<feature> &features, int place){
     vector<int> setOfFeatures;
     vector<int> thisLevel (1);
     int depth = sqrt(features.at(0).feature.size());
     double bestSoFar = 0, accuracy =0;
+    priority_queue<node> accuracyOrder;
     node bestest;
     if (depth < 4 && 4 < features.at(0).feature.size())
         depth = 4;
@@ -338,6 +354,11 @@ node carlosSelection(const vector<feature> &features){
             accuracy =0;
             if (!contains(setOfFeatures, k)){
                 accuracy = leaveOneOut(features, setOfFeatures, k);
+                if (i == 1){//When at level one  place accuracy in priority_queue
+                    vector<int> stuff {k};
+                    node temp(stuff, 0, accuracy);
+                    accuracyOrder.push(temp);
+                }
                 cout << "   Using feature(s) { ";
                 for (int m =0; m < setOfFeatures.size(); m++){
                     cout << setOfFeatures.at(m) << ", ";
@@ -356,8 +377,17 @@ node carlosSelection(const vector<feature> &features){
                 }
             }
         }
+        if (i == 1){//picks the "place" best feature
+            for(int k = 0; k < place; k++){
+                accuracyOrder.pop();
+            }
+            thisLevel = accuracyOrder.top().feature;
+            bestSoFar = accuracyOrder.top().accuracy;
+            setOfFeatures =  (thisLevel);
+        }
+        else
+            setOfFeatures =  (thisLevel);
 
-        setOfFeatures =  (thisLevel);
         cout << "\nFeature set { ";
         for (int m =0; m < setOfFeatures.size()-1; m++){
             cout << setOfFeatures.at(m) << ", ";
