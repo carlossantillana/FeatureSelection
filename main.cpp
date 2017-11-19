@@ -27,6 +27,7 @@ feature nearestNeighbor(const vector<feature> &features, feature start, vector<i
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
 node forwardSelection(const vector<feature> &features);
 node backwardSelection(const vector<feature> &features);
+node carlosSelection(const vector<feature> &features);
 double leaveOneOut(const vector<feature> &features, vector<int>  types, int k);
 bool contains(vector<int> thisLevel, int feature);
 double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j);
@@ -75,6 +76,7 @@ int main(){
     //Depth limited monte carlo (fork) search
     //Depth is limited to four (reference graph dicusssed in class, maybe allow     for user input)
     //number of "snakes" is the square root of number of features
+        best = carlosSelection(features);
     }
     cout << "The best feature is ";
     for (int i=0; i < best.feature.size(); i++){
@@ -203,7 +205,8 @@ node forwardSelection(const vector<feature> &features){
     }
 
     return bestest;
-}//Runs forward selection
+}
+//Runs backwardSelection
 node backwardSelection(const vector<feature> &features){
     vector<int> setOfFeatures;
     vector<int> thisLevel;
@@ -317,4 +320,52 @@ double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j){
     }
     percentCorrect = correct/(features.size()*(types.size()));
     return percentCorrect;
+}
+//Runs a depth limited search by the sqrt of the number of features but guarantees
+// to run to a depth of at least four if there are four or more features.
+node carlosSelection(const vector<feature> &features){
+    vector<int> setOfFeatures;
+    vector<int> thisLevel (1);
+    int depth = sqrt(features.at(0).feature.size());
+    double bestSoFar = 0, accuracy =0;
+    node bestest;
+    if (depth < 4 && 4 < features.at(0).feature.size())
+        depth = 4;
+    cout << "depth " << depth << endl;
+    for (int i =1; i <= depth; i++){
+        bestSoFar = 0;
+        for (int k =1; k <= features.at(0).feature.size(); k++){
+            accuracy =0;
+            if (!contains(setOfFeatures, k)){
+                accuracy = leaveOneOut(features, setOfFeatures, k);
+                cout << "   Using feature(s) { ";
+                for (int m =0; m < setOfFeatures.size(); m++){
+                    cout << setOfFeatures.at(m) << ", ";
+                }
+                cout << k << " } accuracy is " << accuracy * 100 << "%" <<endl;
+                if (accuracy > bestSoFar){
+                    bestSoFar = accuracy;
+                    thisLevel.at(thisLevel.size()-1) = k;
+                    if (bestSoFar > bestest.accuracy){
+                         if (i > 1)//So it doesn't crash when setOfFeatures is empty
+                            bestest.feature = thisLevel;
+                        else
+                            bestest.feature.push_back(k);
+                        bestest.accuracy = bestSoFar;
+                    }
+                }
+            }
+        }
+
+        setOfFeatures =  (thisLevel);
+        cout << "\nFeature set { ";
+        for (int m =0; m < setOfFeatures.size()-1; m++){
+            cout << setOfFeatures.at(m) << ", ";
+        }
+        cout << " " <<  setOfFeatures.at(setOfFeatures.size()-1) << " } was best, accuracy is ";
+        cout  << bestSoFar * 100 << "%" << endl << endl;
+        thisLevel.resize(thisLevel.size()+1);
+    }
+
+    return bestest;
 }

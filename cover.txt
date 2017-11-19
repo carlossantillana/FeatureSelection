@@ -8,3 +8,5 @@ https://stackoverflow.com/questions/2684603/how-do-i-initialize-a-float-to-its-m
 	(how to initialize dist to max in c++)
 https://www.cs.cmu.edu/afs/cs/academic/class/15381-s07/www/slides/042607clustering.pdf
 	(Used to learn Leave one out evaluation referenced in instructions)
+https://stackoverflow.com/questions/3385229/c-erase-vector-element-by-value-rather-than-by-position
+	(Used to delete item by value from vector)
