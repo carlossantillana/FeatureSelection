@@ -31,7 +31,6 @@ struct node{
 
 //Function Prototypes
 void getInput(vector<feature> &features);
-void printFeatures(const vector<feature> &features);//delete this later
 void normalize(vector<feature> &features);
 feature nearestNeighbor(const vector<feature> &features, feature start, vector<int> types, int miss);
 float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
@@ -112,8 +111,8 @@ void getInput(vector<feature> &features){
 
     cout << "Type the name of file to test: ";
     cin >> fname;
-    //inFile.open(fname.c_str()); unblock later
-    inFile.open("CS170Smalltestdata__83.txt");
+    inFile.open(fname.c_str());
+    //inFile.open("CS170Smalltestdata__83.txt");
     if(!inFile){
         cout << "Error opening file\n";
         exit(1);
@@ -142,15 +141,7 @@ void getInput(vector<feature> &features){
     features.resize(rows);
     //End
 }
-void printFeatures(const vector<feature> &features){
-    for(int i=0; i < features.size(); i++){
-        cout << features.at(i).type << ": ";
-        for(int j=0; j < features.at(i).feature.size(); j++){
-                cout << setprecision(8) << features.at(i).feature.at(j) << ", ";
-        }
-        cout << endl;
-    }
-}
+
 //Normalizes input
 void normalize(vector<feature> &features){
     float mean= 0, stdev=0, count=0, middle =0;
@@ -181,6 +172,7 @@ void normalize(vector<feature> &features){
 node forwardSelection(const vector<feature> &features){
     vector<int> setOfFeatures;
     vector<int> thisLevel (1);
+    bool localMax = false;
     double bestSoFar = 0, accuracy =0;
     node bestest;
     for (int i =1; i <= features.at(0).feature.size(); i++){
@@ -208,7 +200,10 @@ node forwardSelection(const vector<feature> &features){
                 }
             }
         }
-
+        if (bestSoFar < bestest.accuracy && !localMax){
+            localMax = true;
+            cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)\n";
+        }
         setOfFeatures =  (thisLevel);
         cout << "\nFeature set { ";
         for (int m =0; m < setOfFeatures.size()-1; m++){
@@ -227,6 +222,7 @@ node backwardSelection(const vector<feature> &features){
     vector<int> thisLevel;
     double bestSoFar = 0;
     double accuracy =0;
+    bool localMax = false;
     for(int i=1; i <= features.at(0).feature.size(); i++){
         setOfFeatures.push_back(i);
     }
@@ -256,6 +252,10 @@ node backwardSelection(const vector<feature> &features){
             }
         }
 
+        if (bestSoFar < bestest.accuracy && !localMax){
+            localMax = true;
+            cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)\n";
+        }
         setOfFeatures =  (thisLevel);
         cout << "\nFeature set { ";
         for (int m =0; m < setOfFeatures.size()-1; m++){
@@ -345,6 +345,7 @@ node carlosSelection(const vector<feature> &features, int place){
     double bestSoFar = 0, accuracy =0;
     priority_queue<node> accuracyOrder;
     node bestest;
+    bool localMax = false;
     if (depth < 4 && 4 < features.at(0).feature.size())
         depth = 4;
     cout << "depth " << depth << endl;
@@ -385,8 +386,11 @@ node carlosSelection(const vector<feature> &features, int place){
             bestSoFar = accuracyOrder.top().accuracy;
             setOfFeatures =  (thisLevel);
         }
-        else
-            setOfFeatures =  (thisLevel);
+        if (bestSoFar < bestest.accuracy && !localMax){
+            localMax = true;
+            cout << "(Warning, Accuracy has decreased! Continuing search in case of other maxima)\n";
+        }
+        setOfFeatures =  (thisLevel);
 
         cout << "\nFeature set { ";
         for (int m =0; m < setOfFeatures.size()-1; m++){
