@@ -112,7 +112,6 @@ void getInput(vector<feature> &features){
     cout << "Type the name of file to test: ";
     cin >> fname;
     inFile.open(fname.c_str());
-    //inFile.open("CS170Smalltestdata__83.txt");
     if(!inFile){
         cout << "Error opening file\n";
         exit(1);
@@ -147,24 +146,20 @@ void normalize(vector<feature> &features){
     float mean= 0, stdev=0, count=0, middle =0;
     cout << "This data set has " << features.at(1).feature.size() << " features";
     cout << "(not including the class attribute), with " << features.size() << " instances.\n";
-    for(int i=0; i < features.size(); i++){// finds mean
-        for(int j=0; j < features.at(i).feature.size(); j++){
-                mean+= features.at(i).feature.at(j);
+    for(int i=0; i < features.at(0).feature.size(); i++){
+        for(int j=0; j < features.size(); j++){// finds mean
+                mean+= features.at(j).feature.at(i);
                 count++;
         }
-    }
-    mean = mean/count;
+        mean = mean/count;
 
-    for(int i=0; i < features.size(); i++){// finds std
-        for(int j=0; j < features.at(i).feature.size(); j++){
-                middle+= pow((features.at(i).feature.at(j)- mean),2);
+        for(int j=0; j < features.size(); j++){// finds std
+                middle+= pow((features.at(j).feature.at(i)- mean),2);
         }
-    }
-    stdev = middle/count;
-    stdev = sqrt(stdev);
-    for(int i=0; i < features.size(); i++){// normalizes
-        for(int j=0; j < features.at(i).feature.size(); j++){
-                features.at(i).feature.at(j)= (features.at(i).feature.at(j) - mean)/stdev;
+        stdev = middle/count;
+        stdev = sqrt(stdev);
+        for(int j=0; j < features.size(); j++){// normalizes
+                features.at(j).feature.at(i)= (features.at(j).feature.at(i) - mean)/stdev;
         }
     }
 }
@@ -346,7 +341,6 @@ node carlosSelection(const vector<feature> &features, int place){
     bool localMax = false;
     if (depth < 4 && 4 < features.at(0).feature.size())
         depth = 4;
-    cout << "depth " << depth << endl;
     for (int i =1; i <= depth; i++){
         bestSoFar = 0;
         for (int k =1; k <= features.at(0).feature.size(); k++){
