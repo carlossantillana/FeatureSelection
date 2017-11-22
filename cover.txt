@@ -10,3 +10,4 @@ https://www.cs.cmu.edu/afs/cs/academic/class/15381-s07/www/slides/042607clusteri
 	(Used to learn Leave one out evaluation referenced in instructions)
 https://stackoverflow.com/questions/3385229/c-erase-vector-element-by-value-rather-than-by-position
 	(Used to delete item by value from vector)
+sample  gives times  with 5 percent of data feautres left out

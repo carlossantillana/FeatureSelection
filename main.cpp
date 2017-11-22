@@ -145,6 +145,8 @@ void getInput(vector<feature> &features){
 //Normalizes input
 void normalize(vector<feature> &features){
     float mean= 0, stdev=0, count=0, middle =0;
+    cout << "This data set has " << features.at(1).feature.size() << " features";
+    cout << "(not including the class attribute), with " << features.size() << " instances.\n";
     for(int i=0; i < features.size(); i++){// finds mean
         for(int j=0; j < features.at(i).feature.size(); j++){
                 mean+= features.at(i).feature.at(j);
@@ -152,8 +154,7 @@ void normalize(vector<feature> &features){
         }
     }
     mean = mean/count;
-    cout << "This data set has " << features.at(1).feature.size() << " features";
-    cout << "(not including the class attribute), with " << features.size() << " instances.\n";
+
     for(int i=0; i < features.size(); i++){// finds std
         for(int j=0; j < features.at(i).feature.size(); j++){
                 middle+= pow((features.at(i).feature.at(j)- mean),2);
@@ -176,7 +177,6 @@ node forwardSelection(const vector<feature> &features){
     double bestSoFar = 0, accuracy =0;
     node bestest;
     for (int i =1; i <= features.at(0).feature.size(); i++){
-
         bestSoFar = 0;
         for (int k =1; k <= features.at(0).feature.size(); k++){
             accuracy =0;
@@ -308,15 +308,13 @@ double leaveOneOut(const vector<feature> &features, vector<int>  types, int j){
     double correct = 0;
     types.push_back(j);
     feature guess;
-    for (int k =0; k < types.size(); k++){//checks previous values
         for(int i=0; i < features.size(); i++){//I represents the value to leave out
             guess = nearestNeighbor(features, features.at(i), types, i);
             if (guess.type == features.at(i).type){
                 correct++;
             }
         }
-    }
-    percentCorrect = correct/(features.size()*(types.size()));
+    percentCorrect = correct/(features.size());
     return percentCorrect;
 }
 //Runs leave one out evalution for backwardSelection
