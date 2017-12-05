@@ -9,6 +9,8 @@
 #include <algorithm>//To erase element from vector by value
 #include <queue>
 #include <time.h>
+#include <future>
+#include <vector>
 using namespace std;
 
 struct feature{
@@ -41,7 +43,7 @@ node carlosSelection(const vector<feature> &features,int place);
 double leaveOneOut(const vector<feature> &features, vector<int>  types, int k, double bestSoFar);
 bool contains(vector<int> thisLevel, int feature);
 double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j, double bestSoFar);
-
+            template<typename T> using unsized_raw_array = T[];
 int main(){
     int menuInput = 2;
     vector<feature> features (2048);
@@ -87,21 +89,29 @@ int main(){
         t = clock() - t;
     }
     else if (menuInput == 3){
-        t = clock();
+        auto start = std::chrono::steady_clock::now();
+        vector<future<node> > futures;
         for(int l= 0; l < sqrt(features.at(0).feature.size()); l++){
-            tempBest = carlosSelection(features, l);
-            if ( tempBest.accuracy > best.accuracy ){
-                best = tempBest;
-            }
+           futures.push_back(async(launch::async, carlosSelection, features, l));
         }
-        t = clock() - t;
+        for(auto &e : futures) {
+            node current = e.get();
+           if (current.accuracy > best.accuracy){
+               best = current;
+           }
+        }
+        auto end = std::chrono::steady_clock::now();
+        auto diff = end - start;
+            cout << "It took " << chrono::duration <double> (diff).count() << " sec" << endl;
     }
     cout << "The best feature is ";
     for (int i=0; i < best.feature.size(); i++){
         cout << best.feature.at(i) << " ";
     }
     cout << " with an accuracy of " <<best.accuracy* 100  << "%" << endl;
-    cout << "It took  " << float(t)/CLOCKS_PER_SEC << " seconds" << endl;
+    if (menuInput != 3)
+        cout << "It took  " << float(t)/CLOCKS_PER_SEC << " seconds" << endl;
+
     return 0;
 }
 
