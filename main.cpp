@@ -8,6 +8,7 @@
 #include <limits>
 #include <algorithm>//To erase element from vector by value
 #include <queue>
+#include <time.h>
 using namespace std;
 
 struct feature{
@@ -37,15 +38,16 @@ float distance(vector<float> lhs, vector<float> rhs, vector<int> types);
 node forwardSelection(const vector<feature> &features);
 node backwardSelection(const vector<feature> &features);
 node carlosSelection(const vector<feature> &features,int place);
-double leaveOneOut(const vector<feature> &features, vector<int>  types, int k);
+double leaveOneOut(const vector<feature> &features, vector<int>  types, int k, double bestSoFar);
 bool contains(vector<int> thisLevel, int feature);
-double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j);
+double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j, double bestSoFar);
 
 int main(){
     int menuInput = 2;
     vector<feature> features (2048);
     node best, tempBest;
     double correct =0;
+    clock_t t;
 
     cout << "Welcome to Carlos Santillana's Feature Selection Algorithm\n";
     getInput(features);
@@ -70,33 +72,36 @@ int main(){
     for(int i=1; i < features.at(0).feature.size(); i++){//fills vector with all features;
         all2.at(i-1) = i;
     }
-     correct = leaveOneOut(features, all2, features.at(0).feature.size() );
+     correct = leaveOneOut(features, all2, features.at(0).feature.size(), 0);
     cout << "Running nearest neighbor with all 4 features, using “leaving-one-out” evaluation, I get an accuracy of ";
     cout << setprecision(2) << fixed << correct* 100 << "% \n";
     cout << "Beginning search\n";
     if (menuInput == 1){
+        t = clock();
         best = forwardSelection(features);
+        t = clock() - t;
     }
     else if (menuInput == 2){
+        t = clock();
         best = backwardSelection(features);
+        t = clock() - t;
     }
     else if (menuInput == 3){
-    //Idea!
-    //Depth limited monte carlo (fork) search
-    //Depth is limited to four (reference graph dicusssed in class, maybe allow    for user input)
-    //number of "snakes" is the square root of number of features
+        t = clock();
         for(int l= 0; l < sqrt(features.at(0).feature.size()); l++){
             tempBest = carlosSelection(features, l);
             if ( tempBest.accuracy > best.accuracy ){
                 best = tempBest;
             }
         }
+        t = clock() - t;
     }
     cout << "The best feature is ";
     for (int i=0; i < best.feature.size(); i++){
         cout << best.feature.at(i) << " ";
     }
     cout << " with an accuracy of " <<best.accuracy* 100  << "%" << endl;
+    cout << "It took  " << float(t)/CLOCKS_PER_SEC << " seconds" << endl;
     return 0;
 }
 
@@ -171,12 +176,13 @@ node forwardSelection(const vector<feature> &features){
     bool localMax = false;
     double bestSoFar = 0, accuracy =0;
     node bestest;
+
     for (int i =1; i <= features.at(0).feature.size(); i++){
         bestSoFar = 0;
         for (int k =1; k <= features.at(0).feature.size(); k++){
             accuracy =0;
             if (!contains(setOfFeatures, k)){
-                accuracy = leaveOneOut(features, setOfFeatures, k);
+                accuracy = leaveOneOut(features, setOfFeatures, k, bestSoFar);
                 cout << "   Using feature(s) { ";
                 for (int m =0; m < setOfFeatures.size(); m++){
                     cout << setOfFeatures.at(m) << ", ";
@@ -227,7 +233,7 @@ node backwardSelection(const vector<feature> &features){
         for (int k =1; k <= features.at(0).feature.size(); k++){
             accuracy =0;
             if (contains(setOfFeatures, k)){
-                accuracy = leaveOneOut2(features, setOfFeatures, k);
+                accuracy = leaveOneOut2(features, setOfFeatures, k, bestSoFar);
 
                 cout << "   Using feature(s) { ";
                 for (int m =0; m < setOfFeatures.size(); m++){
@@ -298,35 +304,53 @@ float distance(vector<float> lhs, vector<float> rhs, vector<int> types){
 }
 
 //Runs leave one out evalution
-double leaveOneOut(const vector<feature> &features, vector<int>  types, int j){
+double leaveOneOut(const vector<feature> &features, vector<int>  types, int j, double bestSoFar){
     double percentCorrect =0;
     double correct = 0;
+    int numWrong = 0;
     types.push_back(j);
+    int bestNumWrong = 99999;
+    if (bestSoFar != 0){
+        bestNumWrong = abs (100 - bestSoFar*features.size());
+    }
     feature guess;
         for(int i=0; i < features.size(); i++){//I represents the value to leave out
             guess = nearestNeighbor(features, features.at(i), types, i);
             if (guess.type == features.at(i).type){
                 correct++;
+            }
+            else{
+                numWrong++;
+                if (numWrong > bestNumWrong)
+                    return 0;//cout << "num wrong: " << numWrong << endl;//return 0;
             }
         }
     percentCorrect = correct/(features.size());
     return percentCorrect;
 }
 //Runs leave one out evalution for backwardSelection
-double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j){
+double leaveOneOut2(const vector<feature> &features, vector<int>  types, int j, double bestSoFar){
     double percentCorrect =0;
     double correct = 0;
+    int bestNumWrong = 99999;
+        int numWrong = 0;
+    if (bestSoFar != 0){
+        bestNumWrong = abs (100 - bestSoFar*features.size());
+    }
     feature guess;
     types.erase(std::remove(types.begin(), types.end(), j), types.end());// erases k from vect
-    for (int k =0; k < types.size(); k++){//checks previous values
-        for(int i=0; i < features.size(); i++){//I represents the value to leave out
-            guess = nearestNeighbor(features, features.at(i), types, i);
-            if (guess.type == features.at(i).type){
-                correct++;
-            }
+    for(int i=0; i < features.size(); i++){//I represents the value to leave out
+        guess = nearestNeighbor(features, features.at(i), types, i);
+        if (guess.type == features.at(i).type){
+            correct++;
+        }
+        else{
+            numWrong++;
+            if (numWrong > bestNumWrong)
+                return 0;//cout << "num wrong: " << numWrong << endl;//return 0;
         }
     }
-    percentCorrect = correct/(features.size()*(types.size()));
+    percentCorrect = correct/(features.size());
     return percentCorrect;
 }
 //Runs a depth limited search by the sqrt of the number of features but guarantees
@@ -346,7 +370,7 @@ node carlosSelection(const vector<feature> &features, int place){
         for (int k =1; k <= features.at(0).feature.size(); k++){
             accuracy =0;
             if (!contains(setOfFeatures, k)){
-                accuracy = leaveOneOut(features, setOfFeatures, k);
+                accuracy = leaveOneOut(features, setOfFeatures, k, bestSoFar);
                 if (i == 1){//When at level one  place accuracy in priority_queue
                     vector<int> stuff {k};
                     node temp(stuff, 0, accuracy);
@@ -393,5 +417,4 @@ node carlosSelection(const vector<feature> &features, int place){
         thisLevel.resize(thisLevel.size()+1);
     }
 
-    return bestest;
-}
+    return bestest; }
